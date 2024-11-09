@@ -103,13 +103,11 @@ int main()
 		}
 		
 		// TODO:
-		// 1. по нажатию сохранять фреймы в вектор векторов
-		// 2. по завершению сохранять картинки в файлы в данной папке в таком-то количестве (например, на 10с видео)
-		//
-		
-		// Save image
-		//render_context.save_display_image("a.jpg");
-		//render_context.save_to_memory();
+		// 1. Evolve to a given time
+		// 2. Set stations (zoom and focus)
+		// 3. Save pics during a given time
+		// 4. Prepare a set of interesting stations to capture
+		// 5. Draw channel borders!
 		
     }
 	
