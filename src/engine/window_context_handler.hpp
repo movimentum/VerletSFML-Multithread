@@ -10,6 +10,8 @@ class WindowContextHandler;
 
 class RenderContext
 {
+	std::vector<sf::Uint8> img;
+	
 public:
     explicit
     RenderContext(sf::RenderWindow& window)
@@ -76,6 +78,25 @@ public:
     {
         m_window.display();
     }
+	
+	void save_display_image(const std::string fn)
+	{
+		m_window.capture().saveToFile(fn);
+	}
+	
+	void save_to_memory()
+	{
+		std::vector<sf::Uint8> output;
+		m_window.capture().saveToMemory(img, "jpg");
+	}
+	
+	void save_image_from_memory_to_file(const std::string fn)
+	{
+		sf::Image im;
+		im.loadFromMemory(img.data(), img.size());
+		im.saveToFile(fn);
+	}
+	
     
 private:
     sf::RenderWindow& m_window;

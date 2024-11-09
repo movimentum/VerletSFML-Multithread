@@ -43,6 +43,20 @@ int main()
         app.setFramerateLimit(target_fps);
     });
 	
+	// Save image to memory button
+	app.getEventManager().addKeyPressedCallback(sf::Keyboard::M, [&](sfev::CstEv) {
+        render_context.save_to_memory();
+		printf("Saved to memory!\n");
+		render_context.save_image_from_memory_to_file("b-from_memory.jpg");
+		printf("Saved from memory!\n");
+    });
+	
+	// Save image from memory to file button
+	bool is_saving_pics = false;
+	app.getEventManager().addKeyPressedCallback(sf::Keyboard::Q, [&](sfev::CstEv) {
+		is_saving_pics = !is_saving_pics;
+    });
+	
 	// Print frame info
 	app.getEventManager().addKeyPressedCallback(sf::Keyboard::P, [&](sfev::CstEv) {
 		float zoom = render_context.getZoom();
@@ -65,19 +79,38 @@ int main()
 
 		const auto id = solver.createObject({x, y});
 		solver.objects[id].last_position.x -= 0.0f;  // bulk velocity
-		solver.objects[id].last_position.x += 0.4f * (float(rand()) / RAND_MAX - 0.5f); // chaotic speed: 0 -- for hypersonic; considerably greater than bulk velocity -- for ~subsonic
-		solver.objects[id].last_position.y += 0.4f * (float(rand()) / RAND_MAX - 0.5f); //
+		solver.objects[id].last_position.x += 0.2f * (float(rand()) / RAND_MAX - 0.5f); // chaotic speed: 0 -- for hypersonic; considerably greater than bulk velocity -- for ~subsonic
+		solver.objects[id].last_position.y += 0.2f * (float(rand()) / RAND_MAX - 0.5f); //
 		solver.objects[id].color = ColorUtils::getRainbow(id * 0.0001f);
 	}
 
     // Main loop
     const float dt = 1.0f / static_cast<float>(fps_cap);
+	int i=0;
     while (app.run()) {
         solver.update(dt);
 
         render_context.clear();
         renderer.render(render_context);
         render_context.display();
+		
+		++i;
+		
+		if (is_saving_pics){
+			std::stringstream s;
+			s << "pics/file-" << i << ".jpg";
+			render_context.save_display_image(s.str());
+		}
+		
+		// TODO:
+		// 1. по нажатию сохранять фреймы в вектор векторов
+		// 2. по завершению сохранять картинки в файлы в данной папке в таком-то количестве (например, на 10с видео)
+		//
+		
+		// Save image
+		//render_context.save_display_image("a.jpg");
+		//render_context.save_to_memory();
+		
     }
 	
     return 0;
