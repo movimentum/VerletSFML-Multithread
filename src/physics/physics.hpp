@@ -27,7 +27,7 @@ struct PhysicSolver
     }
 
     // Checks if two atoms are colliding and if so create a new contact
-    void solveContact(uint32_t atom_1_idx, uint32_t atom_2_idx)
+    virtual void solveContact(uint32_t atom_1_idx, uint32_t atom_2_idx)
     {
         constexpr float response_coef = 1.0f;
         constexpr float eps           = 0.0001f;
@@ -148,7 +148,7 @@ struct PhysicSolver
         }
     }
 
-    void updateObjects_multi(float dt)
+    virtual void updateObjects_multi(float dt)
     {
         thread_pool.dispatch(to<uint32_t>(objects.size()), [&](uint32_t start, uint32_t end){
             for (uint32_t i{start}; i < end; ++i) {

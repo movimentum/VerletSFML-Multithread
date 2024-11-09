@@ -3,7 +3,7 @@
 #include "engine/window_context_handler.hpp"
 #include "engine/common/color_utils.hpp"
 
-#include "physics/physics.hpp"
+#include "physics/physics_nozzle.hpp"
 #include "thread_pool/thread_pool.hpp"
 #include "renderer/renderer.hpp"
 
@@ -17,14 +17,17 @@ int main()
     // Initialize solver and renderer
 
     tp::ThreadPool thread_pool(10);
-    const IVec2 world_size{300, 300};
-    PhysicSolver solver{world_size, thread_pool};
+	const IVec2 world_size{3000, 350};
+	PhysicSolverNozzle::NozzleGeom g = {1700.0f, 2000.0f, 2200.0f, 2500.0f, 150.0f, 200.0f};
+    PhysicSolverNozzle solver{world_size, thread_pool, g};
+	solver.gravity = {0.0f, 0.0f};
+	
     Renderer renderer(solver, thread_pool);
 
-    const float margin = 20.0f;
-    const auto  zoom   = static_cast<float>(window_height - margin) / static_cast<float>(world_size.y);
+    const float margin = 0.0f;
+    const auto  zoom   = static_cast<float>(window_height - margin) / static_cast<float>(world_size.y) * 0.6;
     render_context.setZoom(zoom);
-    render_context.setFocus({world_size.x * 0.5f, world_size.y * 0.5f});
+    render_context.setFocus({world_size.x * 0.64f, world_size.y * 0.64f});
 
     bool emit = true;
     app.getEventManager().addKeyPressedCallback(sf::Keyboard::Space, [&](sfev::CstEv) {
@@ -37,24 +40,35 @@ int main()
         target_fps = target_fps ? 0 : fps_cap;
         app.setFramerateLimit(target_fps);
     });
+	
+	// Setup
+	for (uint32_t i{100000}; i--;) {
+		auto x = float(rand()) / RAND_MAX * world_size.x;
+		auto y = float(rand()) / RAND_MAX * world_size.y;
+		
+		// Gas ahead of the nozzle
+		if ( ((x > g.x1 && x < g.x2) && (y < (x - g.x1) * 0.5 || y > g.y2 + (g.x2 - x) * 0.5)) || (x >= g.x2 && (y < g.y1 || y > g.y2)) )
+			 continue;
+		// Vacuum in the nozzle and downstream
+		if (x > 1600)
+			continue;
+
+		const auto id = solver.createObject({x, y});
+		solver.objects[id].last_position.x -= 0.0f;  // bulk velocity
+		solver.objects[id].last_position.x += 0.4f * (float(rand()) / RAND_MAX - 0.5f); // chaotic speed: 0 -- for hypersonic; considerably greater than bulk velocity -- for ~subsonic
+		solver.objects[id].last_position.y += 0.4f * (float(rand()) / RAND_MAX - 0.5f); //
+		solver.objects[id].color = ColorUtils::getRainbow(id * 0.0001f);
+	}
 
     // Main loop
     const float dt = 1.0f / static_cast<float>(fps_cap);
     while (app.run()) {
-        if (solver.objects.size() < 80000 && emit) {
-            for (uint32_t i{20}; i--;) {
-                const auto id = solver.createObject({2.0f, 10.0f + 1.1f * i});
-                solver.objects[id].last_position.x -= 0.2f;
-                solver.objects[id].color = ColorUtils::getRainbow(id * 0.0001f);
-            }
-        }
-
         solver.update(dt);
 
         render_context.clear();
         renderer.render(render_context);
         render_context.display();
     }
-
+	
     return 0;
 }
