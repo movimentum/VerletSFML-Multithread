@@ -10,6 +10,8 @@
 
 int main()
 {
+	srand(0x13b);
+	
     const uint32_t window_width  = 1920;
     const uint32_t window_height = 1080;
     WindowContextHandler app("Verlet-MultiThread", sf::Vector2u(window_width, window_height), sf::Style::Default);
@@ -39,6 +41,14 @@ int main()
     app.getEventManager().addKeyPressedCallback(sf::Keyboard::S, [&](sfev::CstEv) {
         target_fps = target_fps ? 0 : fps_cap;
         app.setFramerateLimit(target_fps);
+    });
+	
+	// Print frame info
+	app.getEventManager().addKeyPressedCallback(sf::Keyboard::P, [&](sfev::CstEv) {
+		float zoom = render_context.getZoom();
+		Vec2 center = render_context.getFocus();
+		printf("zoom: %f\n", zoom);
+		printf("center: %f, %f\n", center.x, center.y);
     });
 	
 	// Setup

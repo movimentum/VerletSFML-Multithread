@@ -27,6 +27,16 @@ public:
     {
         m_viewport_handler.setZoom(zoom);
     }
+	
+	sf::Vector2f getFocus()
+    {
+        return m_viewport_handler.state.offset;
+    }
+	
+	float getZoom()
+    {
+        return m_viewport_handler.state.zoom;
+    }
     
     void registerCallbacks(sfev::EventManager& event_manager)
     {
