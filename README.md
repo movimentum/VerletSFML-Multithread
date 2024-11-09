@@ -4,7 +4,8 @@
 
 ## Compilation
 
-[SFML](https://www.sfml-dev.org/) and [CMake](https://cmake.org/) need to be installed.
+ [CMake](https://cmake.org/) needs to be installed.
+ Git needs to be installed as it fetches [SFML](https://www.sfml-dev.org/) during cmake build.
 
 Create a `build` directory
 
@@ -26,5 +27,8 @@ On **Windows** it will build in **debug** by default. To build in release you ne
 cmake --build . --config Release
 ```
 
-You will also need to add the `res` directory and the SFML dlls in the Release or Debug directory for the executable to run.
+That's it, just run `build/bin/Release/Verlet-Multithread.exe` (on Windows).
+
+Note, you might want to install [SFML](https://www.sfml-dev.org/) manually and add the `res` directory and the SFML dlls in the Release or Debug directory for the executable to run, as original repository suggests.
+
 
