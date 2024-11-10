@@ -19,7 +19,7 @@ int main()
     // Initialize solver and renderer
 
     tp::ThreadPool thread_pool(10);
-	const IVec2 world_size{3000, 350};
+	const IVec2 world_size{4000, 350};
 	PhysicSolverNozzle::NozzleGeom g = {1700.0f, 2000.0f, 2200.0f, 2500.0f, 150.0f, 200.0f};
     PhysicSolverNozzle solver{world_size, thread_pool, g};
 	solver.gravity = {0.0f, 0.0f};

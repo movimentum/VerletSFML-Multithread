@@ -141,6 +141,11 @@ struct PhysicSolverNozzle : PhysicSolver
 				if (x < 0) {
 					reflect(obj, {0,1});
 				}
+				
+				// Right side is closed
+				if (x > world_size.x) {
+					reflect(obj, {0,1});
+				}
             }
         });
     }
