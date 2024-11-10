@@ -71,10 +71,10 @@ int main()
 		auto y = float(rand()) / RAND_MAX * world_size.y;
 		
 		// Gas ahead of the nozzle
-		if ( ((x > g.x1 && x < g.x2) && (y < (x - g.x1) * 0.5 || y > g.y2 + (g.x2 - x) * 0.5)) || (x >= g.x2 && (y < g.y1 || y > g.y2)) )
+		if (solver.is_beyond(x, y))
 			 continue;
-		// Vacuum in the nozzle and downstream
-		if (x > 1600)
+		// Vacuum or rarefied gas in the nozzle and downstream
+		if (x > 1600 && i%20)
 			continue;
 
 		const auto id = solver.createObject({x, y});

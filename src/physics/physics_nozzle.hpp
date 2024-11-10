@@ -145,4 +145,12 @@ struct PhysicSolverNozzle : PhysicSolver
         });
     }
 	
+	bool is_beyond(float x, float y){
+		bool res = x < 0 || x > world_size.x || y < 0 || y > world_size.y;
+		res |= (x > g.x1 && x <= g.x2) && (y < (x - g.x1) * 0.5 || y > g.y2 + (g.x2 - x) * 0.5);
+		res |= (x > g.x2 && x <= g.x3) && (y < g.y1 || y > g.y2);
+		res |= (x > g.x3 && x <= g.x4) && (y < (x - g.x4) / (g.x3 - g.x4) * g.y1 || y > g.y2 * (x - g.x4) / (g.x3 - g.x4) + (g.y2 + g.y1) * (x - g.x3) / (g.x4 - g.x3));
+		return res;
+	}
+	
 };
