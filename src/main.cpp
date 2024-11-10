@@ -107,8 +107,6 @@ int main()
 		// 2. Set stations (zoom and focus)
 		// 3. Save pics during a given time
 		// 4. Prepare a set of interesting stations to capture
-		// 5. Draw channel borders!
-		
     }
 	
     return 0;

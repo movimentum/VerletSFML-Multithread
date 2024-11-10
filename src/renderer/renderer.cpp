@@ -1,9 +1,9 @@
 #include "renderer.hpp"
 
 
-Renderer::Renderer(PhysicSolver& solver_, tp::ThreadPool& tp)
+Renderer::Renderer(PhysicSolverNozzle& solver_, tp::ThreadPool& tp)
     : solver{solver_}
-    , world_va{sf::Quads, 4}
+    , world_va{sf::LineStrip, 13}
     , objects_va{sf::Quads}
     , thread_pool{tp}
 {
@@ -29,17 +29,25 @@ void Renderer::render(RenderContext& context)
 
 void Renderer::initializeWorldVA()
 {
-    world_va[0].position = {0.0f               , 0.0f};
-    world_va[1].position = {solver.world_size.x, 0.0f};
-    world_va[2].position = {solver.world_size.x, solver.world_size.y};
-    world_va[3].position = {0.0f               , solver.world_size.y};
+	const float margin = 0.5f;
+	world_va[ 0].position = {0.0f                - margin, 0.0f                - margin};
+	world_va[ 1].position = {solver.g.x1         + margin, 0.0f                - margin};
+	world_va[ 2].position = {solver.g.x2         + margin, solver.g.y1         - margin};
+	world_va[ 3].position = {solver.g.x3         - margin, solver.g.y1         - margin};
+	world_va[ 4].position = {solver.g.x4         - margin, 0.0f                - margin};
+	world_va[ 5].position = {solver.world_size.x + margin, 0.0f                - margin};
+	world_va[ 6].position = {solver.world_size.x + margin, solver.world_size.y + margin};
+	world_va[ 7].position = {solver.g.x4         - margin, solver.world_size.y + margin};
+	world_va[ 8].position = {solver.g.x3         - margin, solver.g.y2         + margin};
+	world_va[ 9].position = {solver.g.x2         + margin, solver.g.y2         + margin};
+	world_va[10].position = {solver.g.x1         + margin, solver.world_size.y + margin};
+	world_va[11].position = {0.0f                - margin, solver.world_size.y + margin};
 
-    const uint8_t level = 50;
+    const uint8_t level = 70;
     const sf::Color background_color{level, level, level};
-    world_va[0].color = background_color;
-    world_va[1].color = background_color;
-    world_va[2].color = background_color;
-    world_va[3].color = background_color;
+	for (int i{0}; i<13; ++i){
+		world_va[i].color = background_color;
+	}
 }
 
 void Renderer::updateParticlesVA()
