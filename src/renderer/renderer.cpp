@@ -3,7 +3,7 @@
 
 Renderer::Renderer(PhysicSolverNozzle& solver_, tp::ThreadPool& tp)
     : solver{solver_}
-    , world_va{sf::LineStrip, 13}
+    , world_va{sf::LineStrip, solver_.g.coords.size() + 1 }
     , objects_va{sf::Quads}
     , thread_pool{tp}
 {
@@ -29,23 +29,14 @@ void Renderer::render(RenderContext& context)
 
 void Renderer::initializeWorldVA()
 {
-	const float margin = 0.5f;
-	world_va[ 0].position = {0.0f                - margin, 0.0f                - margin};
-	world_va[ 1].position = {solver.g.x1         + margin, 0.0f                - margin};
-	world_va[ 2].position = {solver.g.x2         + margin, solver.g.y1         - margin};
-	world_va[ 3].position = {solver.g.x3         - margin, solver.g.y1         - margin};
-	world_va[ 4].position = {solver.g.x4         - margin, 0.0f                - margin};
-	world_va[ 5].position = {solver.world_size.x + margin, 0.0f                - margin};
-	world_va[ 6].position = {solver.world_size.x + margin, solver.world_size.y + margin};
-	world_va[ 7].position = {solver.g.x4         - margin, solver.world_size.y + margin};
-	world_va[ 8].position = {solver.g.x3         - margin, solver.g.y2         + margin};
-	world_va[ 9].position = {solver.g.x2         + margin, solver.g.y2         + margin};
-	world_va[10].position = {solver.g.x1         + margin, solver.world_size.y + margin};
-	world_va[11].position = {0.0f                - margin, solver.world_size.y + margin};
+	for (int i{ 0 }; i < world_va.getVertexCount(); ++i) {
+		TPoint& pnt = solver.g.coords[i];
+		world_va[i].position = { pnt.x, pnt.y };
+	}
 
     const uint8_t level = 70;
     const sf::Color background_color{level, level, level};
-	for (int i{0}; i<13; ++i){
+	for (int i{ 0 }; i<world_va.getVertexCount(); ++i){
 		world_va[i].color = background_color;
 	}
 }

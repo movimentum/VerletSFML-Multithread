@@ -7,6 +7,8 @@
 #include "thread_pool/thread_pool.hpp"
 #include "renderer/renderer.hpp"
 
+#include "physics/geometry.hpp"
+
 
 int main()
 {
@@ -20,8 +22,19 @@ int main()
 
     tp::ThreadPool thread_pool(10);
 	const IVec2 world_size{4000, 350};
-	PhysicSolverNozzle::NozzleGeom g = {1700.0f, 2000.0f, 2200.0f, 2500.0f, 150.0f, 200.0f};
-    PhysicSolverNozzle solver{world_size, thread_pool, g};
+
+	TGeometry g;
+	g.coords = {
+		{0.0f, 0.0f}, {1700.0f, 0.0f}, {2000.0f, 150.0f}, {2200.0f, 150.0f}, {2500.0f, 0.0f}, {4000.0f, 0.0f},
+		{4000.0f, 350.0f}, {2500.0f, 350.0f}, {2200.0f, 200.0f}, {2000.0f, 200.0f}, {1700.0f, 350.0f}, {0.0f, 350.0f}
+	};
+	
+	/* // Just a square box
+	const IVec2 world_size{ 100, 100 };
+	g.coords = { {0.0f, 0.0f}, {100.0f, 0.0f}, {100.0f, 100.0f}, {0.0f, 100.0f} };
+	*/
+    
+	PhysicSolverNozzle solver{world_size, thread_pool, g};
 	solver.gravity = {0.0f, 0.0f};
 	
     Renderer renderer(solver, thread_pool);
@@ -30,6 +43,7 @@ int main()
     const auto  zoom   = static_cast<float>(window_height - margin) / static_cast<float>(world_size.y) * 0.6;
     render_context.setZoom(zoom);
     render_context.setFocus({world_size.x * 0.64f, world_size.y * 0.64f});
+	//render_context.setFocus({ 0.0f, 0.0f });
 
     bool emit = true;
     app.getEventManager().addKeyPressedCallback(sf::Keyboard::Space, [&](sfev::CstEv) {
@@ -71,8 +85,9 @@ int main()
 		auto y = float(rand()) / RAND_MAX * world_size.y;
 		
 		// Gas ahead of the nozzle
-		if (solver.is_beyond(x, y))
+		if ( ! solver.g.isInside({x,y}) )
 			 continue;
+
 		// Vacuum or rarefied gas in the nozzle and downstream
 		if (x > 1600 && i%20)
 			continue;
@@ -88,11 +103,13 @@ int main()
     const float dt = 1.0f / static_cast<float>(fps_cap);
 	int i=0;
     while (app.run()) {
-        solver.update(dt);
+        
+		solver.update(dt);
 
         render_context.clear();
         renderer.render(render_context);
         render_context.display();
+
 		
 		++i;
 		
