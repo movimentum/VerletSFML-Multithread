@@ -1,28 +1,14 @@
 #pragma once
 
 #include "physics.hpp"
+#include "geometry.hpp"
 
 
 struct PhysicSolverNozzle : PhysicSolver
 {
-	/* Convergent-divergent nozzle geometry
-	***************************************
-	         x1      x4
-	   _______        _______
-	          \      /
-	y1         \____/
-	           x2  x3
-	y2	        ____
-	           /    \
-	   _______/      \________
-	*/
-	
-	struct NozzleGeom{
-		float x1, x2, x3, x4, y1, y2;
-	} g;
-	
+	TGeometry g;
 
-    PhysicSolverNozzle(IVec2 size, tp::ThreadPool& tp, NozzleGeom _g ) : PhysicSolver(size, tp), g(_g) { ; }
+    PhysicSolverNozzle(IVec2 size, tp::ThreadPool& tp, TGeometry _g ) : PhysicSolver(size, tp), g(_g) { ; }
 
 
 	// Get a vector being reflected about a direction 
@@ -111,51 +97,26 @@ struct PhysicSolverNozzle : PhysicSolver
                 // Apply Verlet integration
                 obj.update(dt);
 				
-				// Nozzle boundaries
-				auto& x = obj.position.x,
-					  y = obj.position.y;
-				
-				if (x > g.x1 && x < g.x2){
-					if (y < (x - g.x1) * 0.5){
-						reflect(obj, {g.x2 - g.x1, g.y1});
-					}
-					if (y > g.y2 + (g.x2 - x) * 0.5){
-						reflect(obj, {g.x2 - g.x1, -g.y1});
-					}
-				} else if (x > g.x3 && x < g.x4){
-					if (y < (x - g.x4) / (g.x3 - g.x4) * g.y1){
-						reflect(obj, {g.x4 - g.x3, -g.y1});
-					}
-					if (y > g.y2 * (x - g.x4) / (g.x3 - g.x4) + (g.y2 + g.y1) * (x - g.x3) / (g.x4 - g.x3)){
-						reflect(obj, {g.x4 - g.x3, g.y1});
-					}
-				} else if (x <= g.x1 || x >= g.x4){
-					if (y > world_size.y || y < 0){
-						reflect(obj, {1,0});
-				}} else if (x <= g.x3){
-					if (y > g.y2 || y < g.y1){
-						reflect(obj, {1,0});
-				}}
 
-				// Left side is closed
-				if (x < 0) {
-					reflect(obj, {0,1});
-				}
-				
-				// Right side is closed
-				if (x > world_size.x) {
-					reflect(obj, {0,1});
+				// Geometry boundaries
+				const TPoint pnt = { obj.position.x, obj.position.y };
+				const TPoint pnt_prev = { obj.last_position.x, obj.last_position.y };
+
+				for (int j{ 0 }; j < g.coords.size(); ++j) {
+
+					if ( ! g.isWall(j) || g.isInside(pnt, j) )
+						continue;
+
+					// If obj was not inside on the previous iteration then let it fly away
+					if (!g.isInside(pnt_prev, j))
+						continue;
+
+					const TPoint face = g.getFace(j);
+					reflect(obj, { face.x, face.y });
+
+					break;
 				}
             }
         });
     }
-	
-	bool is_beyond(float x, float y){
-		bool res = x < 0 || x > world_size.x || y < 0 || y > world_size.y;
-		res |= (x > g.x1 && x <= g.x2) && (y < (x - g.x1) * 0.5 || y > g.y2 + (g.x2 - x) * 0.5);
-		res |= (x > g.x2 && x <= g.x3) && (y < g.y1 || y > g.y2);
-		res |= (x > g.x3 && x <= g.x4) && (y < (x - g.x4) / (g.x3 - g.x4) * g.y1 || y > g.y2 * (x - g.x4) / (g.x3 - g.x4) + (g.y2 + g.y1) * (x - g.x3) / (g.x4 - g.x3));
-		return res;
-	}
-	
 };
