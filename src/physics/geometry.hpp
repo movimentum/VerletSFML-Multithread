@@ -14,6 +14,52 @@ struct TPoint {
 	float operator*(const TPoint& other) const {
 		return x * other.x + y * other.y;
 	}
+
+	TPoint operator*(const float factor) const {
+		return { x * factor, y * factor };
+	}
+
+	TPoint operator+(const TPoint& other) const {
+		return { x + other.x, y + other.y };
+	}
+
+	// z-составл€юща€ векторного произведени€ двух векторов из плоскости (x,y)
+	float crossComponent(const TPoint& other) const {
+		return y * other.x - x * other.y;
+	}
+
+	float norm() const {
+		return sqrt(x * x + y * y);
+	}
+
+	void normalize() {
+		float n = norm();
+		x /= n;
+		y /= n;
+	}
+};
+
+struct TLine {
+	// point_on_line = p1 + (p2 - p1) * t, t -- параметр
+	TPoint p1, p2;
+	TPoint tangent, normal;
+
+	TLine(TPoint _p1, TPoint _p2) : p1(_p1), p2(_p2) {      //    normal
+		tangent = _p2 - _p1;                                //    ^
+		tangent.normalize();                                //    |
+		normal = { tangent.y, - tangent.x }; // лева€ нормаль     ----> tangent    Ќќ! ось y направлена вниз!
+	}
+
+	TPoint intersect(TLine other) const {
+		float num = (other.p1 - p1).crossComponent(other.tangent);
+		float den = tangent.crossComponent(other.tangent);  // != 0
+		float t = num / den;
+		return p1 + tangent * t;
+	}
+
+	TLine shiftOut(const float distance) const {
+		return TLine(p1 + normal * distance, p2 + normal * distance);
+	}
 };
 
 
@@ -22,6 +68,10 @@ struct TGeometry {
 
 	int get_next_idx(int i) const {
 		return (i == coords.size() - 1) ? 0 : i + 1;
+	}
+
+	int get_prev_idx(int i) const {
+		return (i == 0) ? coords.size() - 1 : i - 1;
 	}
 
 	// ќпредел€ем, лежит ли точка pnt справа от стенки AB,
@@ -60,5 +110,29 @@ struct TGeometry {
 		const TPoint& beg = coords[iBeg];
 		const TPoint& end = coords[get_next_idx(iBeg)];
 		return end - beg;
+	}
+
+	// Inflate geometry moving all edges outwards by a given distance
+	std::vector<TPoint> getCoordsInflated(const float distance = 0.5) {
+		std::vector<TLine> edges;
+		std::vector<TPoint> coordsInflated;
+
+		// √отовим грани
+		for (int i{ 0 }; i < coords.size(); ++i) {
+			const TPoint& beg = coords[i];
+			const TPoint& end = coords[get_next_idx(i)];
+			TLine edge = { beg, end };
+			TLine edgeShifted = edge.shiftOut(distance);
+			edges.push_back(edgeShifted);
+		}
+
+		// √отовим новую геометрию, пересека€ сдвинутые грани
+		for (int i{ 0 }; i < edges.size(); ++i) {
+			const TLine first = edges[get_prev_idx(i)];
+			const TLine second = edges[i];
+			coordsInflated.push_back(first.intersect(second));
+		}
+
+		return coordsInflated;
 	}
 };

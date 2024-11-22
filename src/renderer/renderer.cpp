@@ -29,8 +29,10 @@ void Renderer::render(RenderContext& context)
 
 void Renderer::initializeWorldVA()
 {
+	auto coords = solver.g.getCoordsInflated(0.5f);
+
 	for (int i{ 0 }; i < world_va.getVertexCount(); ++i) {
-		TPoint& pnt = solver.g.coords[i];
+		TPoint& pnt = coords[i % coords.size()]; // first & last world_va points should be the same
 		world_va[i].position = { pnt.x, pnt.y };
 	}
 
