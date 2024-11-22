@@ -23,8 +23,7 @@ int main()
     tp::ThreadPool thread_pool(10);
 	const IVec2 world_size{4000, 350};
 
-	TGeometry g;
-	g.coords = {
+	TGeometry g({
 		{0.0f, 0.0f}, {1700.0f, 0.0f}, {2000.0f, 150.0f}, {2200.0f, 150.0f}, {2500.0f, 0.0f}, {4000.0f, 0.0f},
 		{4000.0f, 350.0f}, {2500.0f, 350.0f}, {2200.0f, 200.0f}, {2000.0f, 200.0f}, {1700.0f, 350.0f}, {0.0f, 350.0f}
 	};

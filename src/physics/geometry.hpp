@@ -39,32 +39,55 @@ struct TPoint {
 	}
 };
 
-struct TLine {
+struct TFace {
 	// point_on_line = p1 + (p2 - p1) * t, t -- параметр
-	TPoint p1, p2;
+	TPoint beg, end;
 	TPoint tangent, normal;
 
-	TLine(TPoint _p1, TPoint _p2) : p1(_p1), p2(_p2) {      //    normal
-		tangent = _p2 - _p1;                                //    ^
-		tangent.normalize();                                //    |
-		normal = { tangent.y, - tangent.x }; // левая нормаль     ----> tangent    НО! ось y направлена вниз!
+	TFace(TPoint _beg, TPoint _end) : beg(_beg), end(_end) {      //    normal
+		tangent = _end - _beg;                                    //    ^
+		tangent.normalize();                                      //    |
+		normal = { tangent.y, - tangent.x }; // левая нормаль           O----> tangent    НО! ось y направлена вниз!
 	}
 
-	TPoint intersect(TLine other) const {
-		float num = (other.p1 - p1).crossComponent(other.tangent);
+	TPoint intersect(TFace other) const {
+		float num = (other.beg - beg).crossComponent(other.tangent);
 		float den = tangent.crossComponent(other.tangent);  // != 0
 		float t = num / den;
-		return p1 + tangent * t;
+		return beg + tangent * t;
 	}
 
-	TLine shiftOut(const float distance) const {
-		return TLine(p1 + normal * distance, p2 + normal * distance);
+	TFace shiftOut(const float distance) const {
+		return TFace(beg + normal * distance, end + normal * distance);
+	}
+
+	// Определяем, лежит ли точка pnt справа от нас (от данной грани)
+	// Для этого используем свойство векторного произведения [tangent, beg_pnt]
+	bool isPointOnTheRight(const TPoint& pnt) const {
+		const TPoint vec = pnt - beg;
+		return (tangent.x * vec.y - tangent.y * vec.x) > 0; // в графике ось x направлена вправо, но ось y направлена вниз!
+	}
+
+	bool isPointWithinTheScope(const TPoint& pnt) const {
+		const TPoint bp = pnt - beg;
+		const TPoint be = pnt - end;
+		return (tangent * bp < 0.0) || (tangent * be > 0.0); // область, которую заметает грань, двигаясь в направлении своей нормали 
 	}
 };
 
 
 struct TGeometry {
 	std::vector<TPoint> coords;
+	std::vector<TFace> faces;
+
+	TGeometry(std::vector<TPoint> _coords) : coords(_coords) {
+		// Формируем грани
+		for (int i{ 0 }; i < coords.size(); ++i) {
+			const TPoint& beg = coords[i];
+			const TPoint& end = coords[get_next_idx(i)];
+			faces.push_back({ beg, end });
+		}
+	}
 
 	int get_next_idx(int i) const {
 		return (i == coords.size() - 1) ? 0 : i + 1;
@@ -74,27 +97,15 @@ struct TGeometry {
 		return (i == 0) ? coords.size() - 1 : i - 1;
 	}
 
-	// Определяем, лежит ли точка pnt справа от стенки AB,
-	// начинающейся в точке с индексом wallBegIdx
-	// Используем свойство векторного произведения [AB, Apnt]
-	bool isInside(const TPoint& pnt, const int wallBegIdx) const {
-
-		const TPoint& beg = coords[wallBegIdx];
-		const TPoint& end = coords[get_next_idx(wallBegIdx)];
-
-		const TPoint be = end - beg;  // TODO: можно этот вектор запомнить для геометрии
-		const TPoint bp = pnt - beg;
-		const TPoint ep = pnt - end;
-
-		bool isOnCorrectSide = (be.x * bp.y - be.y * bp.x) > 0; // в графике ось x направлена вправо, но ось y направлена вниз!
-		bool isBeyondFace = (be * bp < 0.0) || (be * ep > 0.0); // атом должен лежать над ребром, иначе в невыпуклых геометриях будут проблемы
-
-		return  isBeyondFace || isOnCorrectSide;
+	bool isInside(const TPoint& pnt, const int iFace) const {
+		const TFace& face = faces[iFace];
+		return face.isPointOnTheRight(pnt) || face.isPointWithinTheScope(pnt);
 	}
 
 	bool isInside(const TPoint& pnt) const {
-		for (int i{ 0 }; i < coords.size(); ++i) {
-			if (!isInside(pnt, i))
+		//for (int i{ 0 }; i < coords.size(); ++i) {
+		for (auto face : faces){
+			if ( ! (face.isPointOnTheRight(pnt)) )
 				return false;
 		}
 		return true;
@@ -114,22 +125,22 @@ struct TGeometry {
 
 	// Inflate geometry moving all edges outwards by a given distance
 	std::vector<TPoint> getCoordsInflated(const float distance = 0.5) {
-		std::vector<TLine> edges;
+		std::vector<TFace> edges;
 		std::vector<TPoint> coordsInflated;
 
 		// Готовим грани
 		for (int i{ 0 }; i < coords.size(); ++i) {
 			const TPoint& beg = coords[i];
 			const TPoint& end = coords[get_next_idx(i)];
-			TLine edge = { beg, end };
-			TLine edgeShifted = edge.shiftOut(distance);
+			TFace edge = { beg, end };
+			TFace edgeShifted = edge.shiftOut(distance);
 			edges.push_back(edgeShifted);
 		}
 
 		// Готовим новую геометрию, пересекая сдвинутые грани
 		for (int i{ 0 }; i < edges.size(); ++i) {
-			const TLine first = edges[get_prev_idx(i)];
-			const TLine second = edges[i];
+			const TFace first = edges[get_prev_idx(i)];
+			const TFace second = edges[i];
 			coordsInflated.push_back(first.intersect(second));
 		}
 
