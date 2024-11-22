@@ -73,6 +73,15 @@ struct TFace {
 		const TPoint be = pnt - end;
 		return (tangent * bp < 0.0) || (tangent * be > 0.0); // область, которую заметает грань, двигаясь в направлении своей нормали 
 	}
+
+	// Рассчитывает угловое расстояние, под которым видна грань из точки pnt
+	float observationAngle(const TPoint& pnt) const {
+		TPoint v1 = beg - pnt;
+		TPoint v2 = end - pnt;
+		float sineSign = sign(v1.crossComponent(v2));
+		float cosine = (v1 * v2) / (v1.norm() * v2.norm()); 
+		return sineSign * acos(cosine);
+	}
 };
 
 
@@ -102,13 +111,14 @@ struct TGeometry {
 		return face.isPointOnTheRight(pnt) || face.isPointWithinTheScope(pnt);
 	}
 
+	// Сумма всех углов, под которыми видно грани геометрии из точки pnt, 
+	// равна 360 градусов, если точка внутри, и 0 градусов, если точка снаружи
 	bool isInside(const TPoint& pnt) const {
-		//for (int i{ 0 }; i < coords.size(); ++i) {
-		for (auto face : faces){
-			if ( ! (face.isPointOnTheRight(pnt)) )
-				return false;
-		}
-		return true;
+		float angle = 0.0f;
+		for (auto face : faces)
+			angle += face.observationAngle(pnt);
+		
+		return (abs(angle) < 0.001f) ? false : true;
 	}
 
 	// Начинается ли с данной точки стенка
