@@ -102,17 +102,16 @@ struct PhysicSolverNozzle : PhysicSolver
 				const TPoint pnt = { obj.position.x, obj.position.y };
 				const TPoint pnt_prev = { obj.last_position.x, obj.last_position.y };
 
-				for (int j{ 0 }; j < g.coords.size(); ++j) {
+				for (auto face : g.faces) {
 
-					if ( ! g.isWall(j) || g.isInside(pnt, j) )
+					if (!face.isWall || face.isInside(pnt))
 						continue;
 
 					// If obj was not inside on the previous iteration then let it fly away
-					if (!g.isInside(pnt_prev, j))
+					if (!face.isInside(pnt_prev))
 						continue;
 
-					const TPoint face = g.getFace(j);
-					reflect(obj, { face.x, face.y });
+					reflect(obj, { face.tangent.x, face.tangent.y });
 
 					break;
 				}

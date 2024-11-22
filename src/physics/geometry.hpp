@@ -5,7 +5,7 @@
 
 struct TPoint {
 	float x, y;
-	bool isWallFollows = true;
+	bool isWallFollows = true; // дл€ удобной инициализации границы
 
 	TPoint operator-(const TPoint& other) const {
 		return { x - other.x, y - other.y };
@@ -43,11 +43,12 @@ struct TFace {
 	// point_on_line = p1 + (p2 - p1) * t, t -- параметр
 	TPoint beg, end;
 	TPoint tangent, normal;
+	bool isWall;
 
-	TFace(TPoint _beg, TPoint _end) : beg(_beg), end(_end) {      //    normal
-		tangent = _end - _beg;                                    //    ^
-		tangent.normalize();                                      //    |
-		normal = { tangent.y, - tangent.x }; // лева€ нормаль           O----> tangent    Ќќ! ось y направлена вниз!
+	TFace(TPoint _beg, TPoint _end, bool _isWall) : beg(_beg), end(_end), isWall(_isWall) { //    normal
+		tangent = _end - _beg;                                                              //    ^
+		tangent.normalize();                                                                //    |
+		normal = { tangent.y, - tangent.x }; // лева€ нормаль                                     O----> tangent    Ќќ! ось y направлена вниз!
 	}
 
 	TPoint intersect(TFace other) const {
@@ -58,7 +59,7 @@ struct TFace {
 	}
 
 	TFace shiftOut(const float distance) const {
-		return TFace(beg + normal * distance, end + normal * distance);
+		return TFace(beg + normal * distance, end + normal * distance, isWall);
 	}
 
 	// ќпредел€ем, лежит ли точка pnt справа от нас (от данной грани)
@@ -72,6 +73,10 @@ struct TFace {
 		const TPoint bp = pnt - beg;
 		const TPoint be = pnt - end;
 		return (tangent * bp < 0.0) || (tangent * be > 0.0); // область, которую заметает грань, двига€сь в направлении своей нормали 
+	}
+
+	bool isInside(const TPoint& pnt) const {
+		return isPointOnTheRight(pnt) || isPointWithinTheScope(pnt);
 	}
 
 	// –ассчитывает угловое рассто€ние, под которым видна грань из точки pnt
@@ -94,7 +99,7 @@ struct TGeometry {
 		for (int i{ 0 }; i < coords.size(); ++i) {
 			const TPoint& beg = coords[i];
 			const TPoint& end = coords[get_next_idx(i)];
-			faces.push_back({ beg, end });
+			faces.push_back({ beg, end, beg.isWallFollows });
 		}
 	}
 
@@ -104,11 +109,6 @@ struct TGeometry {
 
 	int get_prev_idx(int i) const {
 		return (i == 0) ? coords.size() - 1 : i - 1;
-	}
-
-	bool isInside(const TPoint& pnt, const int iFace) const {
-		const TFace& face = faces[iFace];
-		return face.isPointOnTheRight(pnt) || face.isPointWithinTheScope(pnt);
 	}
 
 	// —умма всех углов, под которыми видно грани геометрии из точки pnt, 
@@ -121,18 +121,6 @@ struct TGeometry {
 		return (abs(angle) < 0.001f) ? false : true;
 	}
 
-	// Ќачинаетс€ ли с данной точки стенка
-	bool isWall(int wallBegIdx) {
-		return coords[wallBegIdx].isWallFollows;
-	}
-
-	// Get face
-	TPoint getFace(const int iBeg) const {
-		const TPoint& beg = coords[iBeg];
-		const TPoint& end = coords[get_next_idx(iBeg)];
-		return end - beg;
-	}
-
 	// Inflate geometry moving all edges outwards by a given distance
 	std::vector<TPoint> getCoordsInflated(const float distance = 0.5) {
 		std::vector<TFace> edges;
@@ -142,7 +130,7 @@ struct TGeometry {
 		for (int i{ 0 }; i < coords.size(); ++i) {
 			const TPoint& beg = coords[i];
 			const TPoint& end = coords[get_next_idx(i)];
-			TFace edge = { beg, end };
+			TFace edge = { beg, end, beg.isWallFollows };
 			TFace edgeShifted = edge.shiftOut(distance);
 			edges.push_back(edgeShifted);
 		}
