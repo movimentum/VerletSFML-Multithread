@@ -56,10 +56,28 @@ struct TFace {
 	TPoint tangent, normal;
 	bool isWall;
 
-	TFace(TPoint _beg, TPoint _end, bool _isWall) : beg(_beg), end(_end), isWall(_isWall) { //    normal
-		tangent = _end - _beg;                                                              //    ^
-		tangent.normalize();                                                                //    |
-		normal = { tangent.y, - tangent.x }; // левая нормаль                                     O----> tangent    НО! ось y направлена вниз!
+	// Собираем грань из её нормали
+	TFace(const Vec2& _v1, const Vec2& _v2, bool isFromNormal = true) {
+		TPoint mid = 0.5f * (_v1 + _v2);
+		TPoint toBeg = TPoint(_v1) - mid;
+		TPoint toEnd = TPoint(_v2) - mid;
+		// Поворот на 90 градусов
+		beg = mid + (isFromNormal ? TPoint({ toBeg.y, -toBeg.x }) : toBeg);
+		end = mid + (isFromNormal ? TPoint({ toEnd.y, -toEnd.x }) : toEnd);
+
+		updateUnitVectors();
+	}
+
+	TFace(TPoint _beg, TPoint _end, bool _isWall) : beg(_beg), end(_end), isWall(_isWall) {
+		updateUnitVectors();
+	}
+
+	// Обновляет единичные касательный и нормальный векторы
+	void updateUnitVectors() {              // normal
+		tangent = end - beg;                // ^
+		tangent.normalize();                // |
+		// Левая нормаль                       |
+		normal = { tangent.y, -tangent.x }; // O----> tangent    НО! ось y направлена вниз!
 	}
 
 	TPoint intersect(TFace other) const {

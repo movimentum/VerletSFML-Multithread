@@ -20,29 +20,24 @@ struct PhysicSolverNozzle : PhysicSolver
 
 	// Two atoms change their velocities upon elastic collision 
 	void exchangeVelocities(uint32_t atom_1_idx, uint32_t atom_2_idx){
-		constexpr float response_coef = 1.0f;
-        constexpr float eps           = 0.0001f;
 		PhysicObject& obj_1 = objects.data[atom_1_idx];
         PhysicObject& obj_2 = objects.data[atom_2_idx];
-		Vec2 n  = obj_1.position - obj_2.position;
-		const float dist2 = n.x * n.x + n.y * n.y;
-		//if (dist2 < 1.0f && dist2 > eps) {
-			n /= sqrt(n.x*n.x+n.y*n.y);		
-			Vec2 l = {n.y, -n.x};
-			
-			Vec2 v1 = obj_1.position - obj_1.last_position;
-			Vec2 v2 = obj_2.position - obj_2.last_position;
-			
-			Vec2 v1_tau  = l * (l.x*v1.x + l.y*v1.y);
-			Vec2 v1_norm = n * (n.x*v1.x + n.y*v1.y);
-			Vec2 v2_tau  = l * (l.x*v2.x + l.y*v2.y);
-			Vec2 v2_norm = n * (n.x*v2.x + n.y*v2.y);
-			
-			Vec2 v1_new = v1_tau + v2_norm;
-			Vec2 v2_new = v2_tau + v1_norm;
-			
-			obj_1.last_position = obj_1.position - v1_new;
-			obj_2.last_position = obj_2.position - v2_new;
+
+		TFace face = { obj_1.position, obj_2.position, true };
+
+		Vec2 v1 = obj_1.getVelocity();
+		Vec2 v2 = obj_2.getVelocity();
+
+		Vec2 v1_tau = face.tangent.toVec2() * (face.tangent * v1);
+		Vec2 v1_norm = face.normal.toVec2() * (face.normal * v1);
+		Vec2 v2_tau = face.tangent.toVec2() * (face.tangent * v2);
+		Vec2 v2_norm = face.normal.toVec2() * (face.normal * v2);
+
+		Vec2 v1_new = v1_tau + v2_norm;
+		Vec2 v2_new = v2_tau + v1_norm;
+
+		obj_1.last_position = obj_1.position - v1_new;
+		obj_2.last_position = obj_2.position - v2_new;
 	}
 	
 	// Checks if two atoms are colliding and if so create a new contact
