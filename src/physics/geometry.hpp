@@ -7,6 +7,17 @@ struct TPoint {
 	float x, y;
 	bool isWallFollows = true; // для удобной инициализации границы
 
+	TPoint() : x(0.0f), y(0.0f), isWallFollows(true) { ; }
+	TPoint(float _x, float _y, bool _isWallFollows) : x(_x), y(_y), isWallFollows(_isWallFollows) { ; }
+	TPoint(float _x, float _y) : x(_x), y(_y) { ; }
+	TPoint(Vec2 v) : x(v.x), y(v.y) { ; }
+	
+	TPoint(const TPoint& pnt) : x(pnt.x), y(pnt.y), isWallFollows(pnt.isWallFollows) { ; }
+	
+	Vec2 toVec2() {
+		return { x, y };
+	}
+
 	TPoint operator-(const TPoint& other) const {
 		return { x - other.x, y - other.y };
 	}
@@ -58,6 +69,16 @@ struct TFace {
 		return beg + tangent * t;
 	}
 
+	TPoint reflect(TPoint pnt, bool isVec=false) const {
+		const TPoint vec = isVec ? pnt : pnt - beg;
+		float proj_t = vec * tangent;
+		float proj_n = vec * normal;
+		TPoint res = tangent * proj_t - normal * proj_n;
+		if (!isVec)
+			return res + beg;
+		return res;
+	}
+
 	TFace shiftOut(const float distance) const {
 		return TFace(beg + normal * distance, end + normal * distance, isWall);
 	}
@@ -89,6 +110,12 @@ struct TFace {
 		// а мусор во float может привести к тому, и acos вернёт nan(ind) --> отбросить мусор
 		cosine = std::round(cosine*1e6) / 1e6;
 		return sineSign * acos(cosine);
+	}
+
+	float getDistanceToPoint(const TPoint& pnt) const {
+		const TPoint v = pnt - beg;
+		float dist = std::min(v.norm(), (pnt - end).norm());
+		return std::min(dist, (v - tangent * (v*tangent)).norm());
 	}
 };
 
@@ -157,5 +184,18 @@ struct TGeometry {
 		}
 
 		return coordsInflated;
+	}
+
+	TFace getClosestFace(const TPoint& pnt) const {
+		const TFace* closest;
+		float d = HUGE_VAL;
+		for (auto& face : faces) {
+			float dCur = face.getDistanceToPoint(pnt);
+			if (d > dCur) {
+				d = dCur;
+				closest = &face;
+			}
+		}
+		return *closest;
 	}
 };

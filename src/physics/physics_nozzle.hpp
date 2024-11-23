@@ -9,30 +9,13 @@ struct PhysicSolverNozzle : PhysicSolver
 	TGeometry g;
 
     PhysicSolverNozzle(IVec2 size, tp::ThreadPool& tp, TGeometry _g ) : PhysicSolver(size, tp), g(_g) { ; }
-
-
-	// Get a vector being reflected about a direction 
-	Vec2 reflectVec(const Vec2& vector, const Vec2& direction){
-
-		float len = sqrt(direction.x * direction.x + direction.y * direction.y);
-		Vec2 l = {direction.x / len, direction.y / len}; // unit tangent
-		Vec2 n = {l.y, -l.x}; // unit normal
-		
-		float vel_norm = vector.x * n.x + vector.y * n.y;
-		Vec2 prj_n = {vel_norm * n.x, vel_norm * n.y};
-		
-		float vel_wall = vector.x * l.x + vector.y * l.y;
-		Vec2 prj_l = {vel_wall * l.x, vel_wall * l.y};
-		
-		Vec2 reflected = prj_l - prj_n;
-		return reflected;
-	}
 	
 	// Modify atom properties upon reflection from a plane 
-	void reflect(PhysicObject& obj, const Vec2& plane){
-		auto reflected_velocity = reflectVec( obj.getVelocity(), plane);
-		obj.setPosition(obj.last_position);
-		obj.addVelocity(reflected_velocity);
+	void reflect(PhysicObject& obj, const TFace& face){
+		TPoint newVel = face.reflect(obj.getVelocity(), true);
+		TPoint newPos = face.reflect(obj.last_position);
+		obj.setPosition(newPos.toVec2());
+		obj.addVelocity(newVel.toVec2());
 	}
 
 	// Two atoms change their velocities upon elastic collision 
@@ -102,19 +85,18 @@ struct PhysicSolverNozzle : PhysicSolver
 				const TPoint pnt = { obj.position.x, obj.position.y };
 				const TPoint pnt_prev = { obj.last_position.x, obj.last_position.y };
 
-				for (auto face : g.faces) {
-
-					if (!face.isWall || face.isInside(pnt))
-						continue;
-
-					// If obj was not inside on the previous iteration then let it fly away
-					if (!face.isInside(pnt_prev))
-						continue;
-
-					reflect(obj, { face.tangent.x, face.tangent.y });
-
-					break;
+				
+				if ( g.isInside(pnt) )
+					continue;
+				if (!g.isInside(pnt_prev)) {
+					//removeObject(obj);
+					//++cnt;
+					//std::cout << "Removed: " << cnt << std::endl;
+					continue;
 				}
+
+				const TFace& face = g.getClosestFace(pnt);
+				reflect(obj, face);
             }
         });
     }
