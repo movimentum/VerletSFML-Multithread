@@ -80,8 +80,8 @@ int main()
 	
 	// Setup
 	for (uint32_t i{100000}; i--;) {
-		auto x = float(rand()) / RAND_MAX * world_size.x;
-		auto y = float(rand()) / RAND_MAX * world_size.y;
+		auto x = 1 + (float(rand()) / RAND_MAX * (world_size.x - 2));
+		auto y = 1 + (float(rand()) / RAND_MAX * (world_size.y - 2));
 		
 		// Gas ahead of the nozzle
 		if ( ! solver.g.isInside({x,y}) )
