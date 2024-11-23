@@ -84,7 +84,10 @@ struct TFace {
 		TPoint v1 = beg - pnt;
 		TPoint v2 = end - pnt;
 		float sineSign = sign(v1.crossComponent(v2));
-		float cosine = (v1 * v2) / (v1.norm() * v2.norm()); 
+		float cosine = (v1 * v2) / (v1.norm() * v2.norm());
+		// ≈сли угол слишком мал, cosine может быть =1.00000045...
+		// а мусор во float может привести к тому, и acos вернЄт nan(ind) --> отбросить мусор
+		cosine = std::round(cosine*1e6) / 1e6;
 		return sineSign * acos(cosine);
 	}
 };
@@ -117,8 +120,19 @@ struct TGeometry {
 		float angle = 0.0f;
 		for (auto face : faces)
 			angle += face.observationAngle(pnt);
-		
-		return (abs(angle) < 0.001f) ? false : true;
+		// ћатематически мы должны получить 0.0, если точка находитс€ снаружи, 
+		// и 2*PI, если внутри.
+		// ќднако, если точка попала в небольшую окрестность продолжени€ линий геометрии,
+		// погрешность расчЄта угла во float возрастает --> 0 << 0.1 << 2*PI
+		return (abs(angle) < 0.1f) ? false : true;
+	}
+
+	float _DEBUG_isInsideRetAngle(const TPoint& pnt) const {
+		float angle = 0.0f;
+		for (auto face : faces)
+			angle += face.observationAngle(pnt);
+
+		return angle;
 	}
 
 	// Inflate geometry moving all edges outwards by a given distance
