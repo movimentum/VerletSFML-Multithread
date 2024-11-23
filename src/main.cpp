@@ -77,6 +77,23 @@ int main()
 		printf("zoom: %f\n", zoom);
 		printf("center: %f, %f\n", center.x, center.y);
     });
+
+	// Update field
+	app.getEventManager().addKeyPressedCallback(sf::Keyboard::U, [&](sfev::CstEv) {
+		solver.update(1.0f / static_cast<float>(fps_cap));
+	});
+
+	// Who outside
+	app.getEventManager().addKeyPressedCallback(sf::Keyboard::O, [&](sfev::CstEv) {
+		for (auto obj : solver.objects) {
+			TPoint pnt = { obj.position.x, obj.position.y };
+			float isIn = g.isInside(pnt);
+			if (!isIn) {
+				float angleTotal = g._DEBUG_isInsideRetAngle(pnt);
+				std::cout << std::setprecision(19) << pnt.x << " " << pnt.y << ": " << "angleTotal = " << angleTotal << std::endl;
+			}
+		}
+	});
 	
 	// Setup
 	for (uint32_t i{100000}; i--;) {
