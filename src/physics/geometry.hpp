@@ -205,7 +205,7 @@ struct TGeometry {
 	}
 
 	TFace getClosestFace(const TPoint& pnt) const {
-		const TFace* closest;
+		const TFace* closest = nullptr;
 		float d = HUGE_VAL;
 		for (auto& face : faces) {
 			float dCur = face.getDistanceToPoint(pnt);
