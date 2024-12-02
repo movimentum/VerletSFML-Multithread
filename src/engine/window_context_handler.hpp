@@ -89,6 +89,13 @@ public:
 		std::vector<sf::Uint8> output;
 		m_window.capture().saveToMemory(img, "jpg");
 	}
+
+
+	const uint8_t* get_rgba_data() {
+		image = m_window.capture(); // save current image in class members
+		const uint8_t *pData = image.getPixelsPtr();
+		return pData;
+	}
 	
 	void save_image_from_memory_to_file(const std::string fn)
 	{
@@ -97,9 +104,10 @@ public:
 		im.saveToFile(fn);
 	}
 	
-    
+	
 private:
-    sf::RenderWindow& m_window;
+	sf::RenderWindow& m_window;
+	sf::Image image;
     ViewportHandler m_viewport_handler;
     
     friend class WindowContextHandler;
