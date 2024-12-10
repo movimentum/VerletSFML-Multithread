@@ -24,7 +24,10 @@ struct VideoWriter {
 	FILE *file = nullptr;
 	const char *filename = nullptr;
 
-	VideoWriter(const uint32_t _w, const uint32_t _h, const char* codecName);
+	VideoWriter(
+		const uint32_t _w, const uint32_t _h, const char* codecName,
+		const int _bitrate=40000000, const int _framerate=25
+	);
 
 	~VideoWriter() {
 		close_file();
@@ -41,9 +44,20 @@ struct VideoWriter {
 	// data -- массив пикселей 8bit-RGBA размером width * height * 4
 	int prepare_frame(const uint8_t *data);
 	
-	// Записывает готовый кадр в файл
-	int write_frame_to_file();
+	// Отправляет готовый кадр в очередь на запись
+	int send_frame_to_file();
 
 	// Освобождает буффер при окончании записи
 	int flush();
+
+	// Записывает в файл готовые буферизованные кадры 
+	int write_buffered_if_ready();
+
+private:
+	uint32_t nFramesTotal = 0;
+	uint32_t nFramesWritten = 0;
+	const uint32_t reportEveryNFrames = 100;
+
+	// Обновляет текущие данные о записанных кадрах и делает сообщение
+	void report_written_frames(std::string explanation = "");
 };

@@ -3,7 +3,7 @@
 /*
  * Constructor
 */
-VideoWriter::VideoWriter(const uint32_t _w, const uint32_t _h, const char* codecName) : width(_w), height(_h) {
+VideoWriter::VideoWriter(const uint32_t _w, const uint32_t _h, const char* codecName, const int _bitrate, const int _framerate) : width(_w), height(_h) {
 
 	// Находим энкодер по имени
 	pCodec = avcodec_find_encoder_by_name(codecName);
@@ -29,11 +29,11 @@ VideoWriter::VideoWriter(const uint32_t _w, const uint32_t _h, const char* codec
 	}
 
 	// Задаём некоторые параметры для кодирования
-	pCodecCtx->bit_rate = 400000;
+	pCodecCtx->bit_rate = _bitrate;
 	pCodecCtx->width = width;   // должно быть кратно 2
 	pCodecCtx->height = height; //
-	pCodecCtx->time_base = { 1, 25 };
-	pCodecCtx->framerate = { 25, 1 };
+	pCodecCtx->time_base = { 1, _framerate };
+	pCodecCtx->framerate = { _framerate, 1 };
 	pCodecCtx->gop_size = 10;
 	pCodecCtx->max_b_frames = 1;
 	pCodecCtx->pix_fmt = AV_PIX_FMT_YUV420P;
@@ -133,64 +133,40 @@ int VideoWriter::prepare_frame(const uint8_t *pRGBA) {
 /*
 * Записывает готовый кадр в файл
 */
-int VideoWriter::write_frame_to_file() {
+int VideoWriter::send_frame_to_file() {
 
 	// Проверяем готовность кадра к записи
-	int ret = av_frame_make_writable(pFrame);
-	if (ret < 0) {
+	if (av_frame_make_writable(pFrame) < 0) {
 		std::cerr << "ERROR: Frame cannot be made writable." << std::endl;
 		return -1;
 	}
 
 	// Посылаем кадр на кодирование
-	ret = avcodec_send_frame(pCodecCtx, pFrame);
-	if (ret < 0) {
+	if (avcodec_send_frame(pCodecCtx, pFrame) < 0) {
 		std::cerr << "ERROR sending a frame to encoder." << std::endl;
 		return -2;
 	}
+	
+	// Записываем, если что-то имеется
+	write_buffered_if_ready();
 
-	// Записываем закодированный пакет
-	while (ret >= 0) {
-		ret = avcodec_receive_packet(pCodecCtx, pPacket);
-		if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
-			return -3;
-		else if (ret < 0) {
-			std::cerr << "ERROR during encoding." << std::endl;
-			return -4; // Should exit on error
-		}
-
-		fwrite(pPacket->data, 1, pPacket->size, file);
-		av_packet_unref(pPacket);
-		std::cout << "Write one!" << std::endl;
-	}
+	if (nFramesWritten >= reportEveryNFrames)
+		report_written_frames();
 
 	return 0;
 }
 
-// TODO: DRY
 int VideoWriter::flush() {
-	// Посылаем пустой кадр на кодирование
-	int ret = avcodec_send_frame(pCodecCtx, nullptr);
-	if (ret < 0) {
+
+	if (avcodec_send_frame(pCodecCtx, nullptr) < 0) {
 		std::cerr << "ERROR when trying to flush." << std::endl;
 		return -1;
 	}
 
-	// Записываем закодированный пакет
-	while (ret >= 0) {
-		ret = avcodec_receive_packet(pCodecCtx, pPacket);
-		if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
-			return -3;
-		else if (ret < 0) {
-			std::cerr << "ERROR during encoding." << std::endl;
-			return -4; // Should exit on error
-		}
+	write_buffered_if_ready();
 
-		fwrite(pPacket->data, 1, pPacket->size, file);
-		av_packet_unref(pPacket);
-		std::cout << "Write one (final, after flush)!" << std::endl;
-	}
-
+	report_written_frames("final flush");
+		
 
 	/* Add sequence end code to have a real MPEG file.
 	   It makes only sense because this tiny examples writes packets
@@ -202,6 +178,39 @@ int VideoWriter::flush() {
 	if (pCodec->id == AV_CODEC_ID_MPEG1VIDEO || pCodec->id == AV_CODEC_ID_MPEG2VIDEO)
 		fwrite(endcode, 1, sizeof(endcode), file);
 
-
 	return 0;
+}
+
+int VideoWriter::write_buffered_if_ready()
+{
+	int ret = 0;
+
+	while (ret >= 0) {
+		ret = avcodec_receive_packet(pCodecCtx, pPacket);
+		if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+			return 0;
+		else if (ret < 0) {
+			std::cerr << "ERROR during encoding." << std::endl;
+			return ret; // Should exit on error
+		}
+
+		fwrite(pPacket->data, 1, pPacket->size, file);
+		av_packet_unref(pPacket);
+		++nFramesWritten;
+	}
+
+	// Should never reach this point
+	// return 0;
+}
+
+
+void VideoWriter::report_written_frames(std::string explanation) {
+	nFramesTotal += nFramesWritten;
+
+	std::cout << nFramesWritten << " more frames written to file" << explanation.c_str();
+	if (!explanation.empty())
+		std::cout << " (" << explanation.c_str() << ")";
+	std::cout << "." << std::endl;
+
+	nFramesWritten = 0;
 }

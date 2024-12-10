@@ -52,7 +52,7 @@ int main()
 
     const float margin = 0.0f;
     const auto  zoom   = static_cast<float>(window_height - margin) / static_cast<float>(world_size.y) * 0.6;
-    render_context.setZoom(zoom);
+    render_context.setZoom(zoom*10);
     render_context.setFocus({world_size.x * 0.62f, world_size.y * 0.62f});
 	//render_context.setFocus({ 3530.226f, 151.991f });
 	//render_context.setFocus({ 25.0f, 25.0f });
@@ -156,12 +156,12 @@ int main()
 		}
 
 		// Запишем первые 2 секунды
-		const int imax_video = 50;
+		const int imax_video = 100;
 		if (i < imax_video) {
 			const uint8_t *data = render_context.get_rgba_data();
 			movie_writer.prepare_frame(data);
 			movie_writer.pFrame->pts = i;
-			movie_writer.write_frame_to_file();
+			movie_writer.send_frame_to_file();
 		}
 		else if (i == imax_video) {
 			movie_writer.flush();
